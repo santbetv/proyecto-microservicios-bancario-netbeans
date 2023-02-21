@@ -3,19 +3,24 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.paymentchain.customer.repository;
+package com.paymentchain.customer.service;
 
 import com.paymentchain.customer.entities.Customer;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import java.util.List;
 
 /**
  *
  * @author Santiago Betancur
  */
-@Repository
-public interface CustomerRepository extends JpaRepository<Customer, Long> {
+public interface ICustomerService {
     
+    public Customer findById(Long id);
+    public List<Customer> findAll();
     public Customer findByCode(String code);
+    
+    public Customer save(Customer customer);
+    public boolean put(Long id,Customer customer);
+    public boolean delete(Long id);
+    
 
 }
