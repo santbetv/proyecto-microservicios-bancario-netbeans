@@ -7,7 +7,6 @@ package com.paymentchain.customer.service.impl;
 
 import com.paymentchain.customer.client.ClientWebClient;
 import com.paymentchain.customer.entities.Customer;
-import com.paymentchain.customer.entities.CustomerProduct;
 import com.paymentchain.customer.repository.CustomerRepository;
 import com.paymentchain.customer.service.ICustomerService;
 import java.util.List;
@@ -15,7 +14,6 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,8 +33,7 @@ public class CustomerService implements ICustomerService {
     @Autowired
     ClientWebClient clientWebClient;
 
-    @Value("${URL.PRODUCT}")
-    private String urlProduct;
+    
 
     @Override
     @Transactional() //
@@ -97,15 +94,7 @@ public class CustomerService implements ICustomerService {
     @Override
     @Transactional(readOnly = true) //
     public Customer findByCode(String code) {
-        Customer customer = customerRepository.findByCode(code);
-        List<CustomerProduct> products = customer.getProducts();
-
-        //for each product find it name
-        products.forEach(x -> {
-            String productName = clientWebClient.extractByData(x.getId(), urlProduct, "name");
-            x.setProductName(productName);
-        });
-
+        Customer customer = clientWebClient.get(code);       
         return customer;
     }
 
