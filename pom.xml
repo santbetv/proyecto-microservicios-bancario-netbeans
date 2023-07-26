@@ -16,8 +16,12 @@
     <name>customer</name>
     <description>Microservicio customer Spring Boot</description>
     
-    <dependencies> 
-        <!-- si se requiere dependencias especificas acá -->
+    <dependencies>        
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+            <version>1.27</version>
+        </dependency>
     </dependencies>
 
     <build>
