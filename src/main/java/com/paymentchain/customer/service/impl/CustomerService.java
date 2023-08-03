@@ -7,14 +7,20 @@ package com.paymentchain.customer.service.impl;
 
 import com.paymentchain.customer.client.ClientWebClient;
 import com.paymentchain.customer.entities.Customer;
+import com.paymentchain.customer.entities.CustomerProduct;
+import com.paymentchain.customer.exception.BussinesRuleException;
 import com.paymentchain.customer.repository.CustomerRepository;
 import com.paymentchain.customer.service.ICustomerService;
+import java.net.UnknownHostException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,21 +32,39 @@ import org.springframework.transaction.annotation.Transactional;
 public class CustomerService implements ICustomerService {
 
     private static final Logger LOG = LoggerFactory.getLogger(CustomerService.class);
-    
-    @Autowired
-    CustomerRepository customerRepository;
+
+    private final CustomerRepository customerRepository;
+    private final ClientWebClient clientWebClient;
 
     @Autowired
-    ClientWebClient clientWebClient;
+    public CustomerService(CustomerRepository customerRepository, ClientWebClient clientWebClient) {
+        this.customerRepository = customerRepository;
+        this.clientWebClient = clientWebClient;
+    }
 
-    
+    @Value("${URL.PRODUCT}")
+    private String urlProduct;
 
     @Override
     @Transactional() //
-    public Customer save(Customer customer) {
-        return customerRepository.save(customer);
+    public Customer save(Customer customer) throws BussinesRuleException, UnknownHostException {
+        if (customer.getProducts() != null) {
+            for (Iterator<CustomerProduct> it = customer.getProducts().iterator(); it.hasNext();) {
+                CustomerProduct dto = it.next();
+                String productName = clientWebClient.getProductName(dto.getProductId(), urlProduct, "name");
+                if (productName.isBlank()) {
+                    BussinesRuleException exception = new BussinesRuleException("1025", "Error de validacion, producto no existe", HttpStatus.PRECONDITION_FAILED);
+                    throw exception;
+                } else {
+                    dto.setProductName(productName);
+                    dto.setCustomer(customer);
+                }
+            }
+        }
+        Customer save = customerRepository.save(customer);
+        return save;
     }
-
+    
     @Override
     @Transactional
     public boolean delete(Long id) {
@@ -65,8 +89,8 @@ public class CustomerService implements ICustomerService {
 
     @Override
     @Transactional(readOnly = true) //
-    public Customer findById(Long id) {
-        return customerRepository.findById(id).orElse(null);
+    public Optional<Customer> findById(Long id) {
+        return customerRepository.findById(id);
     }
 
     @Override
@@ -93,8 +117,8 @@ public class CustomerService implements ICustomerService {
 
     @Override
     @Transactional(readOnly = true) //
-    public Customer findByCode(String code) {
-        Customer customer = clientWebClient.get(code);       
+    public Customer findByCode(String code) throws BussinesRuleException, UnknownHostException {
+        Customer customer = clientWebClient.get(code);
         return customer;
     }
 

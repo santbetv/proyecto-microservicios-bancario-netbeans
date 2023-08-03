@@ -6,7 +6,10 @@
 package com.paymentchain.customer.service;
 
 import com.paymentchain.customer.entities.Customer;
+import com.paymentchain.customer.exception.BussinesRuleException;
+import java.net.UnknownHostException;
 import java.util.List;
+import java.util.Optional;
 
 /**
  *
@@ -14,13 +17,13 @@ import java.util.List;
  */
 public interface ICustomerService {
     
-    public Customer findById(Long id);
+    public Optional<Customer> findById(Long id);
     public List<Customer> findAll();
-    public Customer findByCode(String code);
+    public Customer findByCode(String code) throws BussinesRuleException, UnknownHostException;
     
-    public Customer save(Customer customer);
+    public Customer save(Customer customer) throws BussinesRuleException, UnknownHostException;
     public boolean put(Long id,Customer customer);
-    public boolean delete(Long id);
-    
+    public boolean delete(Long id);    
+
 
 }

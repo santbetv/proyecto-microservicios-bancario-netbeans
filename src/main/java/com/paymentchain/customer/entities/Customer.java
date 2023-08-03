@@ -1,6 +1,7 @@
 package com.paymentchain.customer.entities;
 
 import java.util.List;
+import java.util.Optional;
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;

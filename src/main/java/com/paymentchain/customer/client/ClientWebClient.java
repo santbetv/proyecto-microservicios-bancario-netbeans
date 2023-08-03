@@ -8,25 +8,31 @@ package com.paymentchain.customer.client;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.paymentchain.customer.entities.Customer;
 import com.paymentchain.customer.entities.CustomerProduct;
+import com.paymentchain.customer.exception.BussinesRuleException;
 import com.paymentchain.customer.repository.CustomerRepository;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.epoll.EpollChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
+import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.netty.http.client.HttpClient;
 
 /**
@@ -37,21 +43,19 @@ import reactor.netty.http.client.HttpClient;
 public class ClientWebClient {
 
     private final WebClient.Builder webClientBuilder;
-    CustomerRepository customerRepository;
+    private final CustomerRepository customerRepository;
 
-    
     @Value("${URL.PRODUCT}")
     private String urlProduct;
-    
+
     @Value("${URL.TRANSACTION}")
     private String urlTransaction;
-    
+
     @Autowired
     public ClientWebClient(WebClient.Builder webClientBuilder, CustomerRepository customerRepository) {
         this.webClientBuilder = webClientBuilder;
         this.customerRepository = customerRepository;
     }
-            
 
     //webClient requires HttpClient library to work propertly       
     HttpClient client = HttpClient.create()
@@ -69,38 +73,61 @@ public class ClientWebClient {
                 connection.addHandlerLast(new WriteTimeoutHandler(5000, TimeUnit.MILLISECONDS));
             });
 
-    
+    public Customer get(String code) throws BussinesRuleException,UnknownHostException {
+        Optional<Customer> customer = customerRepository.findByCode(code);
 
-    public Customer get(String code) {
-        Customer customer = customerRepository.findByCode(code);
-        if (customer.getProducts() != null) {
-            List<CustomerProduct> products = customer.getProducts();
-            products.forEach(dto -> {
-                try {
-                    String productName = getProductName(dto.getProductId(), urlProduct, "name");
-                    dto.setProductName(productName);
-                } catch (Exception ex) {
-                    Logger.getLogger("Fallo en customer client" + ex);
-                }
-            });
+        if (customer.isPresent()) {
+            if (customer.get().getProducts() != null) {
+                List<CustomerProduct> products = customer.get().getProducts();
+                products.forEach(dto -> {
+                    try {
+                        String productName = getProductName(dto.getProductId(), urlProduct, "name");
+                        dto.setProductName(productName);
+                    } catch (UnknownHostException ex) {
+                        Logger.getLogger(ClientWebClient.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                });
+            }
+
+            customer.get().setTransactions(getTransacctions(customer.get().getIban(), urlTransaction, "ibanAccount"));
+            return customer.get();
+        } else {
+            BussinesRuleException exception = new BussinesRuleException("1025", "Error de validacion, producto no existe", HttpStatus.PRECONDITION_FAILED);
+            throw exception;
         }
-        customer.setTransactions(getTransacctions(customer.getIban(), urlTransaction, "ibanAccount"));
-        return customer;
     }
 
-    private String getProductName(long id, String URL, String searchedAttribute) {
-        WebClient build = webClientBuilder.clientConnector(new ReactorClientHttpConnector(client))
-                .baseUrl(URL)
-                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .defaultUriVariables(Collections.singletonMap("url", URL))
-                .build();
+    public String getProductName(long id, String URL, String searchedAttribute) throws UnknownHostException {
+        String name = "";
 
-        JsonNode block = build.method(HttpMethod.GET).uri("/" + id)
-                .retrieve().bodyToMono(JsonNode.class).block();
+        try {
+            WebClient build = webClientBuilder.clientConnector(new ReactorClientHttpConnector(client))
+                    .baseUrl(URL)
+                    .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .defaultUriVariables(Collections.singletonMap("url", URL))
+                    .build();
 
-        String name = block.get(searchedAttribute).asText();
-        return name;
-    }
+            JsonNode block = build.method(HttpMethod.GET).uri("/" + id)
+                    .retrieve().bodyToMono(JsonNode.class).block();
+
+            if (block != null) {
+                name = block.get(searchedAttribute).asText();
+            }
+            }catch (WebClientResponseException e) {
+            
+            HttpStatus httpStatus = e.getStatusCode();
+            if (httpStatus == HttpStatus.NOT_FOUND) {
+                return "";
+            } else {
+                throw new UnknownHostException(e.getMessage());
+            }
+            
+        }
+
+            return name;
+        }
+
+    
 
     private <T> List<T> getTransacctions(String accountIban, String URL, String searchedAttribute) {
         List<T> trasnsactions = new ArrayList<>();

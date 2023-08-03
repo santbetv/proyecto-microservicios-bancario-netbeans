@@ -6,11 +6,13 @@
 package com.paymentchain.customer.controller;
 
 import com.paymentchain.customer.entities.Customer;
-import com.paymentchain.customer.entities.CustomerProduct;
+import com.paymentchain.customer.exception.BussinesRuleException;
 import com.paymentchain.customer.service.ICustomerService;
+import java.net.UnknownHostException;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import java.util.List;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,18 +35,28 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class CustomerRestController {
 
     private static final Logger LOG = LoggerFactory.getLogger(CustomerRestController.class);
+    private final ICustomerService iCustomerService;
 
     @Autowired
-    ICustomerService iCustomerService;
-
-    @GetMapping()
-    public List<Customer> findAll() {
-        return iCustomerService.findAll();
+    public CustomerRestController(ICustomerService iCustomerService) {
+        this.iCustomerService = iCustomerService;
     }
-
+    
+    @GetMapping()
+    public ResponseEntity<List<Customer>> findAll() {
+        List<Customer> find = iCustomerService.findAll();
+        if (find== null || find.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }else{
+            return ResponseEntity.ok(find);
+        }   
+    }
+    
     @GetMapping("/{id}")
-    public Customer get(@PathVariable Long id) {
-        return iCustomerService.findById(id);
+    public ResponseEntity<Customer> get(@PathVariable Long id) {
+        Optional<Customer> find = iCustomerService.findById(id);
+        return find.map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}")
@@ -57,14 +69,13 @@ public class CustomerRestController {
     }
 
     @PostMapping
-    public ResponseEntity<?> post(@RequestBody Customer input) {
-        input.getProducts().forEach(x -> x.setCustomer(input));
+    public ResponseEntity<Customer> post(@RequestBody Customer input) throws BussinesRuleException, UnknownHostException{
         Customer save = iCustomerService.save(input);
-        return ResponseEntity.ok(save);
+        return new ResponseEntity<>(save, HttpStatus.CREATED);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable Long id) {
+    public ResponseEntity<Customer> delete(@PathVariable Long id) {
         if (iCustomerService.delete(id)) {
             return new ResponseEntity(HttpStatus.OK);
         } else {
@@ -73,7 +84,7 @@ public class CustomerRestController {
     }
 
     @GetMapping("/full")
-    public Customer getByCode(@RequestParam String code) {
+    public Customer getByCode(@RequestParam String code) throws BussinesRuleException, UnknownHostException {
         Customer customer = iCustomerService.findByCode(code);
         return customer;
     }
