@@ -8,6 +8,10 @@ package com.paymentchain.customer.controller;
 import com.paymentchain.customer.entities.Customer;
 import com.paymentchain.customer.exception.BussinesRuleException;
 import com.paymentchain.customer.service.ICustomerService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.net.UnknownHostException;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,6 +34,7 @@ import org.springframework.web.bind.annotation.RequestParam;
  *
  * @author Santiago Betancur
  */
+@Tag(name = "Customer API", description = "This API service all funcionality for management customer")
 @RestController
 @RequestMapping("/customer")
 public class CustomerRestController {
@@ -41,23 +46,38 @@ public class CustomerRestController {
     public CustomerRestController(ICustomerService iCustomerService) {
         this.iCustomerService = iCustomerService;
     }
-    
+
+    @Operation(description = "Return all customer bunled into Response", summary = "Return 204 if no found")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Exito"),
+        @ApiResponse(responseCode = "500", description = "Internal error")})
+
     @GetMapping()
     public ResponseEntity<List<Customer>> findAll() {
         List<Customer> find = iCustomerService.findAll();
-        if (find== null || find.isEmpty()) {
+        if (find == null || find.isEmpty()) {
             return ResponseEntity.noContent().build();
-        }else{
+        } else {
             return ResponseEntity.ok(find);
-        }   
+        }
     }
-    
+
+    @Operation(description = "Return for id customer bunled into Response", summary = "Return 204 if no found")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Exito"),
+        @ApiResponse(responseCode = "500", description = "Internal error")})
+
     @GetMapping("/{id}")
     public ResponseEntity<Customer> get(@PathVariable Long id) {
         Optional<Customer> find = iCustomerService.findById(id);
         return find.map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    @Operation(description = "Return put for id customer bunled into Response", summary = "Return 404 if no found")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Exito"),
+        @ApiResponse(responseCode = "500", description = "Internal error")})
 
     @PutMapping("/{id}")
     public ResponseEntity<?> put(@PathVariable Long id, @RequestBody Customer input) {
@@ -68,11 +88,20 @@ public class CustomerRestController {
         }
     }
 
+    @Operation(description = "Return save customer bunled into Response", summary = "Return 412 if product no found" + " Error de validacion, producto no existe")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Created"),
+        @ApiResponse(responseCode = "503", description = "Service Unavailable")})
+
     @PostMapping
-    public ResponseEntity<Customer> post(@RequestBody Customer input) throws BussinesRuleException, UnknownHostException{
+    public ResponseEntity<Customer> post(@RequestBody Customer input) throws BussinesRuleException, UnknownHostException {
         Customer save = iCustomerService.save(input);
         return new ResponseEntity<>(save, HttpStatus.CREATED);
     }
+
+    @Operation(description = "Return delete for id customer bunled into Response", summary = "Return 404 if no found")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Exito")})
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Customer> delete(@PathVariable Long id) {
@@ -82,6 +111,11 @@ public class CustomerRestController {
             return new ResponseEntity(HttpStatus.NOT_FOUND);
         }
     }
+
+    @Operation(description = "Return full customer, product, transaction bunled into Response", summary = "Return 412 if product no found" + " Error de validacion, producto no existe" + " and trasaction in empty if not found")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Exito"),
+        @ApiResponse(responseCode = "503", description = "Service Unavailable")})
 
     @GetMapping("/full")
     public Customer getByCode(@RequestParam String code) throws BussinesRuleException, UnknownHostException {
