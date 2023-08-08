@@ -3,14 +3,14 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.paymentchain.customer.service.impl;
+package com.paymentchain.customer.application.service.impl;
 
-import com.paymentchain.customer.client.ClientWebClient;
-import com.paymentchain.customer.entities.Customer;
-import com.paymentchain.customer.entities.CustomerProduct;
-import com.paymentchain.customer.exception.BussinesRuleException;
-import com.paymentchain.customer.repository.CustomerRepository;
-import com.paymentchain.customer.service.ICustomerService;
+import com.paymentchain.customer.infraestructure.client.ClientWebClient;
+import com.paymentchain.customer.domain.entities.Customer;
+import com.paymentchain.customer.domain.entities.CustomerProduct;
+import com.paymentchain.customer.infraestructure.exception.BussinesRuleException;
+import com.paymentchain.customer.domain.repository.CustomerRepository;
+import com.paymentchain.customer.domain.service.ICustomerService;
 import java.net.UnknownHostException;
 import java.util.Iterator;
 import java.util.List;

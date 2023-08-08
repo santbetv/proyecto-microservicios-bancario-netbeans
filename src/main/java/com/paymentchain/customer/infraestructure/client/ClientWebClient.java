@@ -3,13 +3,13 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.paymentchain.customer.client;
+package com.paymentchain.customer.infraestructure.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.paymentchain.customer.entities.Customer;
-import com.paymentchain.customer.entities.CustomerProduct;
-import com.paymentchain.customer.exception.BussinesRuleException;
-import com.paymentchain.customer.repository.CustomerRepository;
+import com.paymentchain.customer.domain.entities.Customer;
+import com.paymentchain.customer.domain.entities.CustomerProduct;
+import com.paymentchain.customer.infraestructure.exception.BussinesRuleException;
+import com.paymentchain.customer.domain.repository.CustomerRepository;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.epoll.EpollChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;

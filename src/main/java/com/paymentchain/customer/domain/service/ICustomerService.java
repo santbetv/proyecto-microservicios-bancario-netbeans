@@ -3,10 +3,10 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.paymentchain.customer.service;
+package com.paymentchain.customer.domain.service;
 
-import com.paymentchain.customer.entities.Customer;
-import com.paymentchain.customer.exception.BussinesRuleException;
+import com.paymentchain.customer.domain.entities.Customer;
+import com.paymentchain.customer.infraestructure.exception.BussinesRuleException;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Optional;

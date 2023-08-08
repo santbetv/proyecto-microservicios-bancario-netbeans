@@ -3,11 +3,15 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.paymentchain.customer.controller;
+package com.paymentchain.customer.application.controller;
 
-import com.paymentchain.customer.entities.Customer;
-import com.paymentchain.customer.exception.BussinesRuleException;
-import com.paymentchain.customer.service.ICustomerService;
+import com.paymentchain.customer.application.mapper.CustomerRequestMapper;
+import com.paymentchain.customer.application.mapper.CustomerResponseMapper;
+import com.paymentchain.customer.domain.dto.CustomerDtoRequest;
+import com.paymentchain.customer.domain.dto.CustomerDtoResponse;
+import com.paymentchain.customer.domain.entities.Customer;
+import com.paymentchain.customer.infraestructure.exception.BussinesRuleException;
+import com.paymentchain.customer.domain.service.ICustomerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -41,70 +45,88 @@ public class CustomerRestController {
 
     private static final Logger LOG = LoggerFactory.getLogger(CustomerRestController.class);
     private final ICustomerService iCustomerService;
+    private final CustomerResponseMapper  customerResponseMapper;
+    private final CustomerRequestMapper customerRequestMapper   ;
 
     @Autowired
-    public CustomerRestController(ICustomerService iCustomerService) {
+    public CustomerRestController(ICustomerService iCustomerService, CustomerResponseMapper customerResponseMapper, CustomerRequestMapper customerRequestMapper) {
         this.iCustomerService = iCustomerService;
+        this.customerResponseMapper = customerResponseMapper;
+        this.customerRequestMapper = customerRequestMapper;
     }
 
     @Operation(description = "Return all customer bunled into Response", summary = "Return 204 if no found")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Exito"),
         @ApiResponse(responseCode = "500", description = "Internal error")})
-
     @GetMapping()
-    public ResponseEntity<List<Customer>> findAll() {
+    public ResponseEntity<List<CustomerDtoResponse>> findAll() {
         List<Customer> find = iCustomerService.findAll();
         if (find == null || find.isEmpty()) {
             return ResponseEntity.noContent().build();
         } else {
-            return ResponseEntity.ok(find);
+            List<CustomerDtoResponse> data =customerResponseMapper.toListCustomerDtoRequest(find);
+            return ResponseEntity.ok(data);
         }
     }
 
+    
+    
     @Operation(description = "Return for id customer bunled into Response", summary = "Return 204 if no found")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Exito"),
         @ApiResponse(responseCode = "500", description = "Internal error")})
-
     @GetMapping("/{id}")
-    public ResponseEntity<Customer> get(@PathVariable Long id) {
+    public ResponseEntity<CustomerDtoResponse> get(@PathVariable Long id) {
         Optional<Customer> find = iCustomerService.findById(id);
-        return find.map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        if (find.isPresent()) {
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.ok(customerResponseMapper.toCustomerDtoRequest(find.get()));
+        }
+//        return find.map(ResponseEntity::ok)
+//                .orElse(ResponseEntity.notFound().build());
     }
+    
+    @Operation(description = "Return full customer, product, transaction bunled into Response", summary = "Return 412 if product no found" + " Error de validacion, producto no existe" + " and trasaction in empty if not found")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Exito"),
+        @ApiResponse(responseCode = "503", description = "Service Unavailable")})
 
+    @GetMapping("/full")
+    public CustomerDtoResponse getByCode(@RequestParam String code) throws BussinesRuleException, UnknownHostException {
+        Customer customer = iCustomerService.findByCode(code);
+        return customerResponseMapper.toCustomerDtoRequest(customer);
+    }
+    
     @Operation(description = "Return put for id customer bunled into Response", summary = "Return 404 if no found")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Exito"),
         @ApiResponse(responseCode = "500", description = "Internal error")})
-
     @PutMapping("/{id}")
-    public ResponseEntity<?> put(@PathVariable Long id, @RequestBody Customer input) {
-        if (iCustomerService.put(id, input)) {
+    public ResponseEntity<?> put(@PathVariable Long id, @RequestBody CustomerDtoRequest input) {
+        if (iCustomerService.put(id, customerRequestMapper.toCustomer(input))) {
             return new ResponseEntity(HttpStatus.OK);
         } else {
             return new ResponseEntity(HttpStatus.NOT_FOUND);
         }
     }
-
+    
     @Operation(description = "Return save customer bunled into Response", summary = "Return 412 if product no found" + " Error de validacion, producto no existe")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "201", description = "Created"),
         @ApiResponse(responseCode = "503", description = "Service Unavailable")})
-
     @PostMapping
-    public ResponseEntity<Customer> post(@RequestBody Customer input) throws BussinesRuleException, UnknownHostException {
-        Customer save = iCustomerService.save(input);
-        return new ResponseEntity<>(save, HttpStatus.CREATED);
+    public ResponseEntity<CustomerDtoResponse> post(@RequestBody CustomerDtoRequest input) throws BussinesRuleException, UnknownHostException {
+        Customer save = iCustomerService.save(customerRequestMapper.toCustomer(input));
+        return new ResponseEntity<>(customerResponseMapper.toCustomerDtoRequest(save), HttpStatus.CREATED);
     }
 
     @Operation(description = "Return delete for id customer bunled into Response", summary = "Return 404 if no found")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Exito")})
-
     @DeleteMapping("/{id}")
-    public ResponseEntity<Customer> delete(@PathVariable Long id) {
+    public ResponseEntity<CustomerDtoResponse> delete(@PathVariable Long id) {
         if (iCustomerService.delete(id)) {
             return new ResponseEntity(HttpStatus.OK);
         } else {
@@ -112,15 +134,6 @@ public class CustomerRestController {
         }
     }
 
-    @Operation(description = "Return full customer, product, transaction bunled into Response", summary = "Return 412 if product no found" + " Error de validacion, producto no existe" + " and trasaction in empty if not found")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Exito"),
-        @ApiResponse(responseCode = "503", description = "Service Unavailable")})
-
-    @GetMapping("/full")
-    public Customer getByCode(@RequestParam String code) throws BussinesRuleException, UnknownHostException {
-        Customer customer = iCustomerService.findByCode(code);
-        return customer;
-    }
+    
 
 }
