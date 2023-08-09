@@ -22,8 +22,10 @@ public interface CustomerRequestMapper {
 
     //fuente CustomerDtoRequest destino Customer
     @Mappings({
-        @Mapping(source = "surName", target = "surname")
-    })
+        @Mapping(source = "surName", target = "surname"),
+        @Mapping(target = "transactions", ignore = true),
+        @Mapping(target = "id", ignore = true)
+    }) 
     Customer toCustomer(CustomerDtoRequest c);
     List<Customer> toListCustomer(List<CustomerDtoRequest> customers);
 
