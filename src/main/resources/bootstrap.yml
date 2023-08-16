@@ -12,10 +12,11 @@ spring:
       failFast: true
       #name of base properties config file, before profile
       name: config-client-customer
-      profile: development
+      #profile: production
       #label: latest
       username: admin
       password: qwerty
+      roles: ADMIN
       retry: 
         max-attempts: 1
         max-interval: 1000
